@@ -141,12 +141,12 @@ export async function reservationExpiryCheckHandler(log: Logger): Promise<void> 
   }
 
   // Warn drivers about reservations expiring within the warning window.
-  const warningThreshold = new Date(Date.now() + EXPIRY_WARNING_MINUTES * 60 * 1000);
+  const warningThreshold = new Date(Date.now() + EXPIRY_WARNING_MINUTES * 60 * 1000).toISOString();
   const expiringSoon = await client<ExpiringRow[]>`
     SELECT id, driver_id, expires_at FROM reservations
     WHERE status = 'active'
       AND expires_at > now()
-      AND expires_at <= ${warningThreshold}
+      AND expires_at <= ${warningThreshold}::timestamptz
   `;
 
   for (const row of expiringSoon) {

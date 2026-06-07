@@ -99,7 +99,7 @@ export function settingsRoutes(app: FastifyInstance): void {
     type: z.enum(['privacy-policy', 'terms-of-service']).describe('Content type'),
   });
   const contentQuery = z.object({
-    lang: z.enum(['en', 'de', 'es', 'zh']).default('en').describe('Language code'),
+    lang: z.enum(['en', 'de', 'es', 'zh', 'uz', 'ru']).default('en').describe('Language code'),
   });
   const contentItem = z.object({ html: z.string() }).passthrough();
 

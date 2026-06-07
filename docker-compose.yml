@@ -42,7 +42,7 @@ services:
     environment:
       DATABASE_URL: postgres://evtivity:evtivity@postgres:5432/evtivity
       SETTINGS_ENCRYPTION_KEY: ${SETTINGS_ENCRYPTION_KEY:-dev-encryption-key-32chars-long!}
-      SEED_DEMO: ${SEED_DEMO:-true}
+      SEED_DEMO: 'false'
       REGISTRATION_POLICY: ${REGISTRATION_POLICY:-approval-required}
     depends_on:
       postgres:
@@ -137,7 +137,7 @@ services:
   csms:
     build:
       context: .
-      dockerfile: packages/csms/Dockerfile.dev
+      dockerfile: packages/csms/Dockerfile.dev.custom
       args:
         VITE_CSMS_AUTO_LOGIN: ${VITE_CSMS_AUTO_LOGIN:-}
     ports:
@@ -154,13 +154,11 @@ services:
     depends_on:
       api:
         condition: service_healthy
-      ocpp:
-        condition: service_healthy
 
   portal:
     build:
       context: .
-      dockerfile: packages/portal/Dockerfile.dev
+      dockerfile: packages/portal/Dockerfile.dev.custom
       args:
         VITE_PORTAL_AUTO_LOGIN: ${VITE_PORTAL_AUTO_LOGIN:-}
     ports:

@@ -1,7 +1,7 @@
 // Copyright (c) 2024-2026 EVtivity. All rights reserved.
 // SPDX-License-Identifier: BUSL-1.1
 
-export type SupportedLang = 'en' | 'de' | 'es' | 'zh';
+export type SupportedLang = 'en' | 'de' | 'es' | 'zh' | 'uz' | 'ru';
 
 export const DEFAULT_CONTENT: Record<
   SupportedLang,
@@ -261,5 +261,19 @@ export const DEFAULT_CONTENT: Record<
 
 <h2>联系我们</h2>
 <p>有关这些服务条款的问题，请通过[联系邮箱]联系我们。</p>`,
+  },
+
+  uz: {
+    'privacy-policy': `<h1>Privacy Policy</h1>
+<p>Last updated: January 1, 2025</p>`,
+    'terms-of-service': `<h1>Terms of Service</h1>
+<p>Last updated: January 1, 2025</p>`,
+  },
+
+  ru: {
+    'privacy-policy': `<h1>Privacy Policy</h1>
+<p>Last updated: January 1, 2025</p>`,
+    'terms-of-service': `<h1>Terms of Service</h1>
+<p>Last updated: January 1, 2025</p>`,
   },
 };

@@ -7,10 +7,12 @@ const LANGUAGES = [
   { code: 'en', label: 'English (US)' },
   { code: 'en-GB', label: 'English (UK)' },
   { code: 'de', label: 'Deutsch' },
-  { code: 'es', label: 'Español' },
-  { code: 'ko', label: '한국어' },
-  { code: 'zh', label: '简体中文' },
-  { code: 'zh-TW', label: '繁體中文' },
+  { code: 'es', label: 'Espanol' },
+  { code: 'uz', label: "O'zbekcha" },
+  { code: 'ru', label: 'Russian' },
+  { code: 'ko', label: 'Korean' },
+  { code: 'zh', label: 'Chinese (Simplified)' },
+  { code: 'zh-TW', label: 'Chinese (Traditional)' },
 ] as const;
 
 interface LanguageSelectProps {

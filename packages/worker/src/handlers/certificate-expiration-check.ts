@@ -55,7 +55,7 @@ export async function certificateExpirationCheckHandler(log: Logger): Promise<vo
   }
 
   // Auto-renew certs in the critical window (online OCPP 2.1 stations only)
-  const criticalThreshold = new Date(Date.now() + criticalDays * 24 * 60 * 60 * 1000);
+  const criticalThreshold = new Date(Date.now() + criticalDays * 24 * 60 * 60 * 1000).toISOString();
   const criticalCerts = await sql`
     SELECT sc.id, sc.station_id, sc.certificate_type, sc.valid_to,
            cs.station_id AS station_ocpp_id
@@ -63,7 +63,7 @@ export async function certificateExpirationCheckHandler(log: Logger): Promise<vo
     JOIN charging_stations cs ON cs.id = sc.station_id
     WHERE sc.status = 'active'
       AND sc.valid_to IS NOT NULL
-      AND sc.valid_to <= ${criticalThreshold}
+      AND sc.valid_to <= ${criticalThreshold}::timestamptz
       AND sc.valid_to > NOW()
       AND cs.is_online = true
       AND cs.ocpp_protocol = 'ocpp2.1'
@@ -93,15 +93,15 @@ export async function certificateExpirationCheckHandler(log: Logger): Promise<vo
   }
 
   // SSE notify on certs in the warning window (between warning and critical)
-  const warningThreshold = new Date(Date.now() + warningDays * 24 * 60 * 60 * 1000);
+  const warningThreshold = new Date(Date.now() + warningDays * 24 * 60 * 60 * 1000).toISOString();
   const warningCerts = await sql`
     SELECT sc.station_id, cs.station_id AS station_ocpp_id, cs.site_id
     FROM station_certificates sc
     JOIN charging_stations cs ON cs.id = sc.station_id
     WHERE sc.status = 'active'
       AND sc.valid_to IS NOT NULL
-      AND sc.valid_to <= ${warningThreshold}
-      AND sc.valid_to > ${criticalThreshold}
+      AND sc.valid_to <= ${warningThreshold}::timestamptz
+      AND sc.valid_to > ${criticalThreshold}::timestamptz
   `;
 
   for (const cert of warningCerts) {

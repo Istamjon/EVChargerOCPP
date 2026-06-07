@@ -1,8 +1,8 @@
+# EVtivity CSMS
+
 <p align="center">
   <img src="assets/evtivity-logo.svg" alt="EVtivity" width="80" height="80" />
 </p>
-
-<h1 align="center">EVtivity CSMS</h1>
 
 <p align="center">
   <a href="https://github.com/EVtivity/evtivity-csms/releases/latest"><img src="https://img.shields.io/github/v/release/EVtivity/evtivity-csms?label=Release&color=4ade80" alt="Release" /></a>
@@ -14,226 +14,613 @@
   <img src="https://img.shields.io/badge/OCPI-2.2.1%20%7C%202.3.0-4ade80.svg" alt="OCPI" />
 </p>
 
-An OCPP 1.6 and 2.1 compliant Charging Station Management System for managing EV charging infrastructure. Handles real-time WebSocket communication with charging stations, OCPI 2.2.1/2.3.0 roaming, ISO 15118 Plug and Charge, a REST API for operators, and two React frontends for operators and drivers.
+OCPP 1.6 va 2.1 compliant Charging Station Management System for managing EV charging infrastructure. Handles real-time WebSocket communication with charging stations, OCPI 2.2.1/2.3.0 roaming, ISO 15118 Plug and Charge, a REST API for operators, and two React frontends for operators and drivers.
 
-EVtivity integrates AI across the operator experience. A chatbot assistant answers natural-language questions about stations, sessions, revenue, and operations by calling API endpoints as tools. A support AI assistant drafts replies for customer support cases by gathering full case context. Both support multiple LLM providers (Anthropic, OpenAI, Gemini) with configurable parameters at system and per-user levels, respond in the operator's preferred language, and enforce security guardrails that prevent leaking sensitive data.
+---
 
-## Architecture
+## Tarix
 
-```mermaid
-graph TB
-    subgraph Frontends
-        CSMS[CSMS]
-        Portal[Driver and Guest Charging Portal]
-    end
+Ushbu loyiha EV (Electric Vehicle) zaryadlash stansiyalarini boshqarish tizimi hisoblanadi. Ikkita asosiy interfeys mavjud:
 
-    subgraph Backend Services
-        API[REST API]
-        OCPP[OCPP Server]
-        OCPI[OCPI Server]
-        Worker[Worker]
-    end
+| Interfeys          | Maqsadli foydalanuvchi                         | Port | URL                   |
+| ------------------ | ---------------------------------------------- | ---- | --------------------- |
+| **CSMS Dashboard** | Tarmoq operatorlari (stansiyalarni boshqarish) | 7100 | http://localhost:7100 |
+| **Driver Portal**  | EV haydovchilari (zaryadlashdan foydalanish)   | 7101 | http://localhost:7101 |
 
-    subgraph Data
-        DB[(PostgreSQL)]
-        Redis[(Redis)]
-    end
+---
 
-    subgraph External
-        Stations[Charging Stations]
-        Partners[OCPI Partners]
-    end
+## Tezkor Boshlash (Docker bilan)
 
-    CSMS -->|REST| API
-    Portal -->|REST| API
-    API <-->|pub/sub| Redis
-    OCPP <-->|pub/sub| Redis
-    OCPI <-->|pub/sub| Redis
-    Worker --> DB
-    Worker --> Redis
-    API --> DB
-    OCPP --> DB
-    OCPI --> DB
-    Stations -->|OCPP 1.6/2.1| OCPP
-    Partners <-->|OCPI 2.2.1/2.3.0| OCPI
+### 1. Talablar
+
+- Docker va Docker Compose
+- Node.js 24+ (mahalliy ishlash uchun)
+- Git
+
+### 2. Reponi clone qilish
+
+```bash
+git clone https://github.com/EVtivity/evtivity-csms.git
+cd evtivity-csms
 ```
 
-## Feature Overview
+### 3. .env faylini yaratish
 
-### OCPP Compliance
+```bash
+cp .env.example .env
+```
 
-| Feature             | Description                                                                |
-| ------------------- | -------------------------------------------------------------------------- |
-| Protocol Support    | OCPP 1.6 and 2.1 with simultaneous multi-version operation                 |
-| Security Profiles   | SP0 through SP3, including mTLS client certificate authentication          |
-| Remote Control      | Start/stop sessions, reset, unlock connector, set charging profile         |
-| Local Authorization | Per-station authorization lists with operator-managed push sync            |
-| Reservations        | EVSE-level reservation with expiry monitoring and driver notification      |
-| Display Messages    | Push pricing info and custom text to station screens via SetDisplayMessage |
-| Plug and Charge     | ISO 15118 PKI with Hubject OPCP and manual certificate provider support    |
+### 4. Docker bilan ishga tushirish
 
-### Station Management
+```bash
+docker compose up -d
+```
 
-| Feature              | Description                                                                      |
-| -------------------- | -------------------------------------------------------------------------------- |
-| Multi-site Hierarchy | Sites, stations, EVSEs, and connectors with per-operator site access control     |
-| Real-time Monitoring | Live connector status, session activity, and meter values via server-sent events |
-| Station Images       | Upload, tag, and publish images per station with driver-visible flag             |
-| Firmware Management  | Network-wide firmware campaigns with per-station scheduling and status tracking  |
-| Configuration        | Configuration templates with station drift detection and bulk apply              |
-| Station Metrics      | NEVI uptime compliance, ChargeX KPIs, utilization rate, and fault rate reporting |
-| Popular Times        | Session frequency heatmap by day and hour per station                            |
-| Remote Diagnostics   | Trigger status notifications, retrieve diagnostics, clear fault states           |
+### 5. Statusni tekshirish
 
-### Smart Charging
+```bash
+docker compose ps -a
+```
 
-| Feature           | Description                                                                        |
-| ----------------- | ---------------------------------------------------------------------------------- |
-| Load Management   | Site-level power budget with equal-share and priority-based allocation             |
-| Charging Profiles | OCPP charging profile delivery with composite schedule support                     |
-| Idle Detection    | Multi-signal idle detection (chargingState, power meter, status) with grace period |
-| V2G               | Vehicle-to-grid discharging state tracking via OCPP 2.1 chargingState              |
+Barcha servicelar muvaffaqiyatli ishga tushganini tekshiring:
 
-### Billing and Payments
+| Servis    | Status     | Port             |
+| --------- | ---------- | ---------------- |
+| postgres  | Healthy    | 5433             |
+| redis     | Healthy    | 6379             |
+| migrate   | Exited (0) | -                |
+| api       | Healthy    | 7102             |
+| ocpp      | Healthy    | 7103, 8443, 9229 |
+| csms      | Healthy    | 7100             |
+| portal    | Healthy    | 7101             |
+| worker    | Running    | -                |
+| simulator | Running    | 8082             |
 
-| Feature                   | Description                                                                                 |
-| ------------------------- | ------------------------------------------------------------------------------------------- |
-| Tariff Engine             | Flat, time-of-day, day-of-week, seasonal, holiday, and energy-threshold tariffs             |
-| Pricing Assignment        | Tariff group assignment at driver, fleet, station, and site levels with priority resolution |
-| Split Billing             | Per-segment cost tracking when tariff changes mid-session                                   |
-| Idle and Reservation Fees | Per-minute idle fee with grace period and per-minute reservation fee                        |
-| Multi-currency            | 10 currencies with Intl.NumberFormat formatting                                             |
-| Payment Processing        | Stripe pre-authorization, capture, partial and full refunds                                 |
-| Guest Charging            | Card-on-file payment for unauthenticated drivers via QR code                                |
-| Invoicing                 | Session receipts, monthly statements, and revenue reconciliation                            |
+### 6. Kirish
 
-### Roaming
+| Servis             | Email                 | Parol    |
+| ------------------ | --------------------- | -------- |
+| **CSMS Dashboard** | admin@evtivity.local  | admin123 |
+| **Driver Portal**  | driver@evtivity.local | admin123 |
 
-| Feature                | Description                                                                        |
-| ---------------------- | ---------------------------------------------------------------------------------- |
-| OCPI 2.2.1 / 2.3.0     | CPO and eMSP roles with dual-version support                                       |
-| Partner Management     | Credential exchange, endpoint registration, and connection status monitoring       |
-| Location Publishing    | Per-site publish control with partner-level visibility settings                    |
-| CDR Generation         | Automatic charge detail record creation and push to eMSP partners                  |
-| Token Authorization    | Real-time and offline authorization of external driver tokens                      |
-| Remote Commands        | CPO commands receiver (START_SESSION, STOP_SESSION, RESERVE_NOW, UNLOCK_CONNECTOR) |
-| Roaming Station Search | Driver portal browse and search of partner network stations                        |
+Brauzerda oching:
 
-### Driver Experience
+- CSMS: http://localhost:7100
+- Portal: http://localhost:7101
 
-| Feature               | Description                                                                       |
-| --------------------- | --------------------------------------------------------------------------------- |
-| Driver Portal         | Mobile-first web portal with QR code scanning, session management, and history    |
-| Nearby Station Search | Location-aware station search with map view and real-time availability            |
-| Guest Charging        | No-account charging flow with Stripe payment at the station                       |
-| Activity Dashboard    | Monthly charging summary with energy, cost, and estimated miles by vehicle        |
-| Monthly Statements    | Itemized session statements available per calendar month                          |
-| Favorites             | Save and quick-access frequently used stations                                    |
-| Fleet Management      | Fleet grouping with fleet-specific pricing and driver token assignment            |
-| Vehicle Management    | Vehicle profiles for energy-to-miles estimation based on real-world efficiency    |
-| RFID Self-service     | Drivers add and manage their own RFID cards from the portal                       |
-| In-app Notifications  | Real-time notification bell with history drawer and per-channel preferences       |
-| Support Cases         | Support tickets with session linking, refund actions, and S3 file attachments     |
-| Notifications         | Email and SMS for session events, payment status, reservations, and support cases |
+---
 
-### AI-Powered Operations
+## Arxitektura
 
-| Feature                  | Description                                                                                            |
-| ------------------------ | ------------------------------------------------------------------------------------------------------ |
-| Chatbot Assistant        | Natural-language operator assistant with access to all API endpoints via auto-generated tool catalog   |
-| Two-tier Tool Selection  | Category-based tool routing keeps per-request tool count under provider limits (128)                   |
-| Support Case AI          | Draft customer replies and internal notes from full case context (messages, sessions, station, driver) |
-| Multi-provider Support   | Anthropic Claude, OpenAI GPT, and Google Gemini with per-user and system-level configuration           |
-| LLM Parameters           | Configurable temperature, top-p, top-k, system prompt, and tone at system and per-user levels          |
-| Language-aware Responses | AI responds in the operator's preferred language across all 6 supported locales                        |
-| Security Guardrails      | Blocks password and API key leaking, requires confirmation before data modifications                   |
-| Auto-generated Tools     | OpenAPI spec codegen produces typed tool definitions for all 500+ operator endpoints                   |
-| Editable Chat            | Edit and resend user messages, copy assistant responses, markdown rendering with scrollable tables     |
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Frontends                                │
+│  ┌─────────────────┐              ┌─────────────────────────┐   │
+│  │  CSMS Dashboard │              │    Driver Portal         │   │
+│  │  (Operator)     │              │    (Driver)             │   │
+│  └────────┬─────────┘              └────────────┬────────────┘   │
+└───────────┼──────────────────────────────────────┼───────────────┘
+            │                                      │
+            ▼                                      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      Backend Services                           │
+│  ┌───────┐  ┌────────┐  ┌─────────┐  ┌──────────┐               │
+│  │  API  │  │  OCPP  │  │  OCPI   │  │  Worker  │               │
+│  │ :7102 │  │ :7103  │  │  :7104  │  │  (bg)    │               │
+│  └───────┘  └────────┘  └─────────┘  └──────────┘               │
+└─────────────────────────────────────────────────────────────────┘
+            │            │            │
+            ▼            ▼            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                       Data Layer                                 │
+│        ┌───────────────┐         ┌───────────────┐              │
+│        │  PostgreSQL   │         │     Redis     │              │
+│        │    :5433      │         │    :6379      │              │
+│        └───────────────┘         └───────────────┘              │
+└─────────────────────────────────────────────────────────────────┘
+            │            │
+            ▼            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    External Services                            │
+│  ┌─────────────────┐         ┌─────────────────────────────┐   │
+│  │ Charging Stations│         │   OCPI Partners (Roaming)    │   │
+│  │ (OCPP 1.6/2.1)   │         │                             │   │
+│  └─────────────────┘         └─────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-### Sustainability
+---
 
-| Feature               | Description                                                                       |
-| --------------------- | --------------------------------------------------------------------------------- |
-| Carbon Tracking       | CO2 avoided per session computed from EPA eGRID and Ember regional grid intensity |
-| Site Carbon Regions   | Assign a carbon intensity region to each site from 60 pre-loaded regional factors |
-| Dashboard Integration | CO2 avoided stat card on the operator dashboard with day-over-day trend           |
-| Session Display       | CO2 column in sessions table and detail pages for both operator and driver views  |
-| Sustainability Report | Monthly trend chart, site breakdown table, trees equivalent, and CSV export       |
-| Portal Integration    | Carbon impact on session receipts, monthly statements, and activity page          |
+## Barcha Servislar va URL Manzillari
 
-### Security and Access
+### Asosiy Servislar
 
-| Feature             | Description                                                                         |
-| ------------------- | ----------------------------------------------------------------------------------- |
-| Authentication      | JWT-based auth with role-based access control for operators and drivers             |
-| SAML SSO            | SAML 2.0 single sign-on with configurable IdP, auto-provisioning, attribute mapping |
-| API Keys            | Long-lived API keys for programmatic access, inheriting the creator's site access   |
-| Multi-factor Auth   | TOTP authenticator app, email code, and SMS code options                            |
-| Site Access Control | Per-operator site assignment with default-deny enforcement                          |
-| Email Verification  | Account verification on driver self-registration before portal access is granted    |
-| Bot Protection      | Google reCAPTCHA v3 on operator and driver login                                    |
-| Audit Logs          | Access log of operator actions for compliance and security review                   |
+| Servis             | Ichki Port | Tashqi Port | URL                   | Tavsif            |
+| ------------------ | ---------- | ----------- | --------------------- | ----------------- |
+| **CSMS Dashboard** | 80         | 7100        | http://localhost:7100 | Operator panel    |
+| **Driver Portal**  | 80         | 7101        | http://localhost:7101 | Haydovchi portali |
+| **REST API**       | 3001       | 7102        | http://localhost:7102 | API server        |
+| **OCPP Server**    | 7103       | 7103        | ws://localhost:7103   | OCPP WebSocket    |
+| **OCPP TLS**       | 8443       | 8443        | wss://localhost:8443  | OCPP mTLS         |
 
-### Reporting and Analytics
+### OCPP Xizmatlari
 
-| Feature            | Description                                                                    |
-| ------------------ | ------------------------------------------------------------------------------ |
-| Dashboards         | Real-time revenue, energy, session count, and connector status charts          |
-| Reports            | 9 report types including energy consumption, revenue, utilization, and faults  |
-| NEVI Compliance    | Station uptime tracking and excluded downtime management per NEVI requirements |
-| Scheduled Delivery | Automated report delivery by email or FTP on configurable schedules            |
+| Servis             | Port | URL                   | Maqsad                |
+| ------------------ | ---- | --------------------- | --------------------- |
+| **OCPP WebSocket** | 7103 | ws://localhost:7103   | OCPP 1.6/2.1 aloqalar |
+| **OCPP TLS**       | 8443 | wss://localhost:8443  | xavfsiz OCPP aloqalar |
+| **OCPP Debugger**  | 9229 | ws://localhost:9229   | Debugger port         |
+| **OCPP Health**    | 8081 | http://localhost:8081 | Health check          |
 
-### Notifications and Messaging
+### Monitoring Servislari (profilingiz bilan)
 
-| Feature              | Description                                                                      |
-| -------------------- | -------------------------------------------------------------------------------- |
-| Event-driven Alerts  | 41 configurable OCPP event types with per-event recipient, channel, and template |
-| Driver Notifications | Session, payment, reservation, and support case notifications per driver         |
-| Channels             | Email (SMTP), SMS (Twilio), webhook, and in-app delivery                         |
-| Template Editor      | WYSIWYG email editor with drag-and-drop variable insertion and live preview      |
-| Email Layout         | Configurable HTML wrapper template applied to all outgoing emails                |
-| Notification History | Delivery log with email preview and SMS/push inline expand                       |
+```bash
+docker compose --profile monitoring up -d
+```
 
-### Deployment and Operations
+| Servis         | Port | URL                   | Login       |
+| -------------- | ---- | --------------------- | ----------- |
+| **Prometheus** | 9090 | http://localhost:9090 | -           |
+| **Grafana**    | 7107 | http://localhost:7107 | admin/admin |
+| **Loki**       | 3100 | http://localhost:3100 | -           |
 
-| Feature            | Description                                                                       |
-| ------------------ | --------------------------------------------------------------------------------- |
-| Deployment Options | Docker Compose, Kubernetes Helm chart (Istio/Envoy Gateway), and AWS CDK (ECS)    |
-| Horizontal Scaling | Stateless services with Redis-backed OCPP connection registry across pods         |
-| Auto-scaling       | Kubernetes HPA for API and OCPP with WebSocket-aware scale-down stabilization     |
-| Rate Limiting      | Configurable global and per-endpoint rate limiting with separate auth rate limits |
-| Observability      | Prometheus metrics, Grafana dashboards, Loki log aggregation                      |
-| Multi-language UI  | 6 languages: English (US/UK), Spanish, Korean, Simplified and Traditional Chinese |
-| Responsive Filters | Filter controls collapse into dropdown on tablet and mobile for all list pages    |
-| Server-down Page   | Friendly error page with retry when API is unreachable, on both CSMS and Portal   |
-| Release Management | Automated version bumping across all packages and Helm chart via release script   |
+### Tools Servislar (profilingiz bilan)
 
-## Services
+```bash
+docker compose --profile tools up -d
+```
 
-When deployed with the Helm chart, each service is exposed on its own subdomain via Gateway API:
+| Servis      | Port | URL                   | Login                 |
+| ----------- | ---- | --------------------- | --------------------- |
+| **pgAdmin** | 7109 | http://localhost:7109 | admin@admin.com/admin |
+| **Mailpit** | 7108 | http://localhost:7108 | -                     |
 
-| Service            | URL                                | Public Port | Internal Port |
-| ------------------ | ---------------------------------- | ----------- | ------------- |
-| CSMS dashboard     | https://csms.your-domain.com       | 443         | 80            |
-| Driver portal      | https://portal.your-domain.com     | 443         | 80            |
-| REST API           | https://api.your-domain.com        | 443         | 3001          |
-| OCPP WebSocket     | wss://ocpp.your-domain.com         | 443         | 8080          |
-| OCPP WebSocket TLS | wss://\<load-balancer-ip\>         | 8443        | 8443          |
-| OCPI server        | https://ocpi.your-domain.com       | 443         | 3002          |
-| Grafana            | https://grafana.your-domain.com    | 443         | 3000          |
-| Prometheus         | https://prometheus.your-domain.com | 443         | 9090          |
-| API Docs           | https://api.your-domain.com/docs   | 443         | 3001          |
+### OCPI Servislar (ocpi profilingiz bilan)
 
-All hostnames share a single load balancer IP. DNS records for each hostname must point to that IP. OCPP TLS (port 8443) is provisioned as a separate `LoadBalancer` service for direct station connections using Security Profile 3 (mTLS).
+```bash
+docker compose --profile ocpi up -d
+```
 
-## Helm Chart
+| Servis            | Port | URL                   |
+| ----------------- | ---- | --------------------- |
+| **OCPI Server**   | 7104 | http://localhost:7104 |
+| **OCPI eMSP Sim** | 7105 | http://localhost:7105 |
+| **OCPI CPO Sim**  | 7106 | http://localhost:7106 |
 
-The Kubernetes Helm chart is maintained in a separate repository: [EVtivity/evtivity-csms-helm](https://github.com/EVtivity/evtivity-csms-helm)
+---
+
+## Development (Mahalliy)
+
+### Talablar
+
+- Node.js 24+
+- Docker va Docker Compose
+- npm 10+
+
+### 1. Dependencies o'rnatish
+
+```bash
+npm install
+```
+
+### 2. Infrastructureni Docker-da ishga tushirish
+
+```bash
+npm run dev:infra
+```
+
+Bu quyidagilarni ishga tushiradi:
+
+- PostgreSQL (:5433)
+- Redis (:6379)
+- Migrations
+- Seed data
+- Mailpit (:7108)
+- Prometheus (:9090)
+- Grafana (:7107)
+- Loki (:3100)
+- Alloy
+
+### 3. Servislarni ishga tushirish
+
+Har bir service alohida terminalda:
+
+```bash
+# REST API (port 7102)
+npm run dev:api
+
+# OCPP WebSocket server (port 7103)
+npm run dev:ocpp
+
+# Operator dashboard (port 7100)
+npm run dev:csms
+
+# Driver portal (port 7101)
+npm run dev:portal
+
+# Background worker
+npm run dev:worker
+
+# Zaryadlash stansiyasi simulatori
+npm run dev:css
+
+# OCPI server (port 7104)
+npm run dev:ocpi
+
+# OCPI eMSP simulator (port 7105)
+npm run dev:ocpi-sim
+
+# OCPI CPO simulator (port 7106)
+npm run dev:ocpi-sim-cpo
+```
+
+### Auto-login
+
+`.env` faylida avtomatik kirish sozlanadi:
+
+```env
+VITE_CSMS_AUTO_LOGIN=admin@evtivity.local
+VITE_PORTAL_AUTO_LOGIN=driver@evtivity.local
+```
+
+Olib tashlash uchun comment qiling.
+
+---
+
+## Docker Compose Buyruqlari
+
+### Asosiy buyruqlar
+
+```bash
+# Barcha servicelarni ishga tushirish
+docker compose up -d
+
+# Barcha servicelarni to'xtatish
+docker compose down
+
+# Servicelarni qayta qurish
+docker compose build --no-cache
+
+# Barcha servicelarni tozalab, qayta ishga tushirish
+docker compose down -v
+docker compose up -d
+```
+
+### Logs ko'rish
+
+```bash
+# Barcha loglar
+docker compose logs
+
+# Ma'lum servis loglari
+docker compose logs api
+docker compose logs ocpp
+docker compose logs postgres
+
+# Real-time loglar
+docker compose logs -f
+
+# Oxirgi 50 qator
+docker compose logs --tail=50
+```
+
+### Status tekshirish
+
+```bash
+# Barcha containerlar
+docker compose ps -a
+
+# Ishlayotganlar
+docker compose ps
+
+# Health check
+docker compose ps | grep healthy
+```
+
+### Database buyruqlari
+
+```bash
+# Migration qo'llash
+docker compose run --rm migrate
+
+# Database ichiga kirish
+docker compose exec postgres psql -U evtivity -d evtivity
+
+# Migratsiyalarni tozalash va qayta qo'llash
+docker compose down -v
+docker compose up -d
+```
+
+### Servislarni alohida boshqarish
+
+```bash
+# Faqat infrastructure
+docker compose up -d postgres redis migrate
+
+# Faqat API va OCPP
+docker compose up -d api ocpp
+
+# Faqat frontend
+docker compose up -d csms portal
+```
+
+---
+
+## Database Buyruqlari
+
+### npm buyruqlari
+
+```bash
+# Migration yaratish (schema o'zgartirilganda)
+npm run db:generate
+
+# Migration qo'llash
+npm run db:migrate
+
+# Seed data qo'llash
+npm run db:seed
+
+# Test stansiyalar yaratish
+npm run db:seed:dev
+```
+
+### Docker ichida
+
+```bash
+# Database ichiga kirish
+docker compose exec postgres psql -U evtivity -d evtivity
+
+# Jadval ro'yxati
+docker compose exec postgres psql -U evtivity -d evtivity -c "\dt"
+
+# Foydalanuvchilar
+docker compose exec postgres psql -U evtivity -d evtivity -c "SELECT email FROM users;"
+
+# Driverlar
+docker compose exec postgres psql -U evtivity -d evtivity -c "SELECT email FROM drivers;"
+```
+
+---
+
+## Testing
+
+### Unit testlar
+
+```bash
+# Barcha testlar
+npm test
+
+# Watch mode
+npm test -- --watch
+```
+
+### Integration testlar
+
+```bash
+# Database ishlamayapshi kerak
+npm run test:integration
+```
+
+### E2E testlar
+
+```bash
+# Playwright bilan
+npm run test:e2e
+```
+
+### OCPP testlari (OCTT)
+
+OCPP protokollarini test qilish uchun:
+
+```bash
+# OCPP 2.1 bilan test
+npm run octt:2.1
+
+# OCPP 1.6 bilan test
+npm run octt:1.6
+
+# Custom server bilan
+npx tsx packages/octt/src/cli.ts --server ws://localhost:7103 --version ocpp2.1
+```
+
+---
+
+## Code Quality
+
+```bash
+# TypeScript tekshirish
+npm run typecheck
+
+# Lint
+npm run lint
+
+# Formatlash
+npm run format
+
+# Format tekshirish
+npm run format:check
+```
+
+---
+
+## OCPP URL Manzillari va Test Qilish
+
+### OCPP Servis URL lari
+
+| Turi               | URL                  | Maxfiyat       |
+| ------------------ | -------------------- | -------------- |
+| **OCPP WebSocket** | ws://localhost:7103  | Oddiy          |
+| **OCPP TLS**       | wss://localhost:8443 | xavfsiz (mTLS) |
+
+### Health tekshirish
+
+```bash
+# OCPP health
+curl http://localhost:8081/
+
+# Natijda:
+# {"status":"ok","connectedStations":0,"redis":"ok"}
+```
+
+### Portlarni tekshirish
+
+```powershell
+# PowerShell bilan barcha portlarni tekshirish
+$ports = @(7100, 7101, 7102, 7103, 8443, 8081, 5433, 6379)
+foreach ($port in $ports) {
+    try {
+        $tcp = New-Object System.Net.Sockets.TcpClient
+        $tcp.Connect("localhost", $port)
+        $tcp.Close()
+        Write-Host "Port $port : OK" -ForegroundColor Green
+    } catch {
+        Write-Host "Port $port : FAIL" -ForegroundColor Red
+    }
+}
+```
+
+---
+
+## Loyiha Strukturasi
+
+```
+evtivity-csms/
+├── packages/                  # Monorepo packages
+│   ├── api/                  # REST API server (Fastify)
+│   ├── ocpp/                 # OCPP WebSocket server
+│   ├── ocpi/                 # OCPI roaming server
+│   ├── csms/                 # Operator dashboard (React)
+│   ├── portal/               # Driver portal (React)
+│   ├── worker/               # Background job processor
+│   ├── css/                  # Charging station simulator
+│   ├── ocpi-simulator/       # OCPI eMSP/CPO simulator
+│   ├── octt/                 # OCPP test tool
+│   ├── database/             # Database schema, migrations
+│   ├── lib/                  # Shared utilities
+│   └── codegen/              # OpenAPI codegen
+├── prometheus/               # Monitoring configs
+├── scripts/                  # Build scripts
+├── schemas/                  # OCPP JSON schemas
+├── docker-compose.yml        # Docker Compose config
+├── .env.example              # Environment template
+└── README.md                 # Bu fayl
+```
+
+---
+
+## Tez-tez Uchraydigan Muammolar
+
+### 1. Migration xatosi
+
+```
+Error: Cannot find module '/app/packages/database/dist/src/seed.js'
+```
+
+**Yechim:** `packages/database/Dockerfile.dev` faylida `node dist/src/seed.js` ni `node dist/seed.js` ga o'zgartiring.
+
+### 2. Database ulanish xatosi
+
+```
+ERROR: could not connect to server
+```
+
+**Yechim:**
+
+```bash
+docker compose down
+docker compose up -d postgres
+# PostgreSQL to'liq ishga tushguncha kuting
+docker compose up -d
+```
+
+### 3. Port band
+
+```
+Error: port is already allocated
+```
+
+**Yechim:** Band portni tekshiring va to'xtating:
+
+```bash
+netstat -ano | findstr :7102
+# Yoki Docker containerni to'xtating
+docker compose stop api
+```
+
+### 4. Driver login ishlamaydi
+
+Driver portal `drivers` jadvalidan foydalanadi, CSMS esa `users` jadvalidan.
+
+**Yechim:** Driver yaratish:
+
+```sql
+INSERT INTO drivers (id, first_name, last_name, email, password_hash, registration_source, language, timezone, theme_preference, distance_unit, is_active, email_verified)
+VALUES (
+  'drv_' || substr(gen_random_uuid()::text, 1, 8),
+  'Test',
+  'Driver',
+  'driver@evtivity.local',
+  '$argon2id$v=19$m=65536,t=3,p=4$...',
+  'manual',
+  'en',
+  'America/New_York',
+  'light',
+  'miles',
+  true,
+  true
+);
+```
+
+### 5. Redis ulanish xatosi
+
+```
+Error: Redis connection refused
+```
+
+**Yechim:**
+
+```bash
+docker compose restart redis
+docker compose up -d
+```
+
+---
+
+## Git Branch va Commit Qoidalari
+
+### Branch nomlari
+
+```
+feature/<feature-name>
+bugfix/<bugfix-name>
+hotfix/<hotfix-name>
+```
+
+### Commit xabarlari
+
+Conventional Commits formatida:
+
+```
+feat: add new charging station feature
+fix: resolve OCPP connection issue
+docs: update README
+refactor: simplify payment processing
+test: add OCPP integration tests
+```
+
+---
+
+## Qo'shimcha Resurslar
+
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Batafsil development qo'llanma
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Contributing qoidalari
+- [LICENSE.md](LICENSE.md) - Licenziya shartlari
+- [SECURITY.md](SECURITY.md) - Xavfsizlik bo'yicha ma'lumot
+
+---
 
 ## License
 
 Copyright (c) 2025-2026 EVtivity. All rights reserved.
 
-You may download and run the software for your own operations. You may not copy, redistribute, reverse engineer, or offer the software as a hosted or SaaS product. You may not sell or charge others for access to the software.
-
-See [LICENSE.md](LICENSE.md) for full terms. For licensing inquiries, contact evtivity@gmail.com.
+See [LICENSE.md](LICENSE.md) for full terms.

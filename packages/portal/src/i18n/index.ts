@@ -15,6 +15,8 @@ function getInitialLanguage(): string {
   const browser = browserFull.split('-')[0];
   if (browser === 'de') return 'de';
   if (browser === 'es') return 'es';
+  if (browser === 'uz') return 'uz';
+  if (browser === 'ru') return 'ru';
   if (browser === 'ko') return 'ko';
   if (browser === 'zh') return 'zh';
   return 'en';

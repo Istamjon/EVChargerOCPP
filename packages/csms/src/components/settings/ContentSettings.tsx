@@ -16,7 +16,7 @@ export function ContentSettings(): React.JSX.Element {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
-  const [contentLang, setContentLang] = useState<'en' | 'de' | 'es' | 'zh'>('en');
+  const [contentLang, setContentLang] = useState<'en' | 'de' | 'es' | 'zh' | 'uz' | 'ru'>('en');
   const [privacyContent, setPrivacyContent] = useState('');
   const [termsContent, setTermsContent] = useState('');
   const [contentSubTab, setContentSubTab] = useTab('privacy', 'sub');
@@ -69,7 +69,7 @@ export function ContentSettings(): React.JSX.Element {
             <Label className="mb-2 block text-xs text-muted-foreground">
               {t('settings.language')}
             </Label>
-            {(['en', 'de', 'es', 'zh'] as const).map((lang) => (
+            {(['en', 'de', 'es', 'zh', 'uz', 'ru'] as const).map((lang) => (
               <button
                 key={lang}
                 type="button"
@@ -82,7 +82,17 @@ export function ContentSettings(): React.JSX.Element {
                     : 'text-foreground hover:bg-muted'
                 }`}
               >
-                {lang === 'en' ? 'English' : lang === 'es' ? 'Espa\u00f1ol' : '\u4e2d\u6587'}
+                {lang === 'en'
+                  ? 'English'
+                  : lang === 'de'
+                    ? 'Deutsch'
+                    : lang === 'es'
+                      ? 'Espanol'
+                      : lang === 'uz'
+                        ? "O'zbekcha"
+                        : lang === 'ru'
+                          ? 'Russian'
+                          : 'Chinese'}
               </button>
             ))}
           </div>

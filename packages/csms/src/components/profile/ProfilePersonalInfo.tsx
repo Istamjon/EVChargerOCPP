@@ -21,6 +21,8 @@ const LOCAL_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const LANGUAGE_OPTIONS = [
   { value: 'en', label: 'English' },
   { value: 'es', label: 'Espanol' },
+  { value: 'uz', label: "O'zbekcha" },
+  { value: 'ru', label: 'Russian' },
   { value: 'zh', label: '中文' },
 ] as const;
 
