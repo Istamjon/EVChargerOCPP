@@ -19,6 +19,7 @@ import { sql } from 'drizzle-orm';
 import { createId } from '../lib/id.js';
 import { chargingStations } from './assets.js';
 import { chargingSessions } from './charging.js';
+import { organizations } from './organizations.js';
 
 export const guestSessionStatusEnum = pgEnum('guest_session_status', [
   'pending_payment',
@@ -40,6 +41,10 @@ export const drivers = pgTable(
     email: varchar('email', { length: 255 }),
     phone: varchar('phone', { length: 50 }),
     passwordHash: varchar('password_hash', { length: 255 }),
+    /** Organization this driver (end user) belongs to. NULL = private/unassigned. */
+    organizationId: text('organization_id').references(() => organizations.id, {
+      onDelete: 'set null',
+    }),
     registrationSource: varchar('registration_source', { length: 20 }).notNull().default('admin'),
     language: varchar('language', { length: 10 }).notNull().default('en'),
     timezone: varchar('timezone', { length: 50 }).notNull().default('America/New_York'),
@@ -56,6 +61,7 @@ export const drivers = pgTable(
   },
   (table) => [
     index('idx_drivers_email').on(table.email),
+    index('idx_drivers_organization_id').on(table.organizationId),
     // Partial unique index: only enforces uniqueness for non-null emails.
     // The actual index is created in migration 0022_production_hardening.sql
     // with a WHERE clause. Drizzle's uniqueIndex does not support WHERE,

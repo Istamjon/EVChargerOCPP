@@ -42,6 +42,7 @@ import {
   revokeRefreshToken,
   revokeAllUserRefreshTokens,
 } from '../services/refresh-token.service.js';
+import { assertUserLimit } from '../services/organization.service.js';
 import { zodSchema } from '../lib/zod-schema.js';
 import { ID_PARAMS } from '../lib/id-validation.js';
 import { paginationQuery } from '../lib/pagination.js';
@@ -93,6 +94,9 @@ const createUserBody = z.object({
   lastName: z.string().max(100).optional(),
   phone: z.string().max(50).optional().describe('Mobile phone number'),
   roleId: ID_PARAMS.roleId.describe('Role ID to assign to the user'),
+  organizationId: ID_PARAMS.organizationId
+    .optional()
+    .describe('Organization ID this user belongs to (optional)'),
   hasAllSiteAccess: z.boolean().default(false).describe('Whether the user can access all sites'),
   siteIds: z
     .array(z.string())
@@ -109,6 +113,10 @@ const updateUserBody = z.object({
   lastName: z.string().max(100).optional(),
   phone: z.string().max(50).nullable().optional().describe('Mobile phone number'),
   roleId: ID_PARAMS.roleId.optional().describe('Role ID to assign to the user'),
+  organizationId: ID_PARAMS.organizationId
+    .nullable()
+    .optional()
+    .describe('Organization ID this user belongs to (null clears the assignment)'),
   isActive: z.boolean().optional().describe('Whether the user account is active'),
   language: z.string().max(10).optional().describe('Preferred language code (e.g. en, es, zh)'),
   timezone: z.string().max(50).optional().describe('IANA timezone (e.g. America/New_York)'),
@@ -151,6 +159,7 @@ const userSelect = {
   lastName: users.lastName,
   phone: users.phone,
   roleId: users.roleId,
+  organizationId: users.organizationId,
   isActive: users.isActive,
   mustResetPassword: users.mustResetPassword,
   hasAllSiteAccess: users.hasAllSiteAccess,
@@ -200,6 +209,7 @@ const userItem = z
     lastName: z.string().nullable(),
     phone: z.string().nullable(),
     roleId: z.string(),
+    organizationId: z.string().nullable(),
     isActive: z.boolean(),
     mustResetPassword: z.boolean(),
     language: z.string(),
@@ -915,6 +925,9 @@ export function userRoutes(app: FastifyInstance): void {
     async (request, reply) => {
       const body = request.body as z.infer<typeof createUserBody>;
 
+      // Apply the organization's assigned annual plan limits before creating the user.
+      await assertUserLimit(body.organizationId);
+
       // Generate unknown random password — user must set via email link
       const passwordHash = await argon2.hash(crypto.randomBytes(32).toString('hex'));
 
@@ -927,6 +940,7 @@ export function userRoutes(app: FastifyInstance): void {
           lastName: body.lastName,
           phone: body.phone,
           roleId: body.roleId,
+          organizationId: body.organizationId ?? null,
           mustResetPassword: true,
         })
         .returning({
@@ -936,6 +950,7 @@ export function userRoutes(app: FastifyInstance): void {
           lastName: users.lastName,
           phone: users.phone,
           roleId: users.roleId,
+          organizationId: users.organizationId,
         });
 
       // INSERT RETURNING always yields a row; this guard satisfies noUncheckedIndexedAccess
@@ -1077,13 +1092,25 @@ export function userRoutes(app: FastifyInstance): void {
           body.roleId !== undefined ||
           body.isActive !== undefined ||
           body.hasAllSiteAccess !== undefined ||
-          body.siteIds !== undefined
+          body.siteIds !== undefined ||
+          body.organizationId !== undefined
         ) {
           await reply.status(403).send({
-            error: 'Cannot edit your own role, status, or site access',
+            error: 'Cannot edit your own role, status, site access, or organization',
             code: 'SELF_EDIT_FORBIDDEN',
           });
           return;
+        }
+      }
+
+      // Apply the organization's assigned annual plan limits when (re)assigning the user.
+      if (body.organizationId != null) {
+        const [current] = await db
+          .select({ organizationId: users.organizationId })
+          .from(users)
+          .where(eq(users.id, id));
+        if (current?.organizationId !== body.organizationId) {
+          await assertUserLimit(body.organizationId);
         }
       }
 
@@ -1092,6 +1119,7 @@ export function userRoutes(app: FastifyInstance): void {
       if (body.lastName !== undefined) fields['lastName'] = body.lastName;
       if (body.phone !== undefined) fields['phone'] = body.phone;
       if (body.roleId !== undefined) fields['roleId'] = body.roleId;
+      if (body.organizationId !== undefined) fields['organizationId'] = body.organizationId;
       if (body.isActive !== undefined) fields['isActive'] = body.isActive;
       if (body.language !== undefined) fields['language'] = body.language;
       if (body.timezone !== undefined) fields['timezone'] = body.timezone;

@@ -34,6 +34,11 @@ interface Site {
   name: string;
 }
 
+interface OrganizationOption {
+  id: string;
+  name: string;
+}
+
 export function UserCreate(): React.JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -43,6 +48,7 @@ export function UserCreate(): React.JSX.Element {
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [roleId, setRoleId] = useState('');
+  const [organizationId, setOrganizationId] = useState('');
   const [hasAllSiteAccess, setHasAllSiteAccess] = useState(false);
   const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>([]);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
@@ -58,6 +64,12 @@ export function UserCreate(): React.JSX.Element {
     queryFn: () => api.get<{ data: Site[] }>('/v1/sites?limit=100'),
   });
   const sitesList = sitesData?.data ?? [];
+
+  const { data: organizationsData } = useQuery({
+    queryKey: ['organizations-for-select'],
+    queryFn: () => api.get<{ data: OrganizationOption[] }>('/v1/organizations?limit=100'),
+  });
+  const organizationsList = organizationsData?.data ?? [];
 
   // Fetch role defaults for permission pre-population
   const { data: roleDefaults } = useQuery({
@@ -95,7 +107,9 @@ export function UserCreate(): React.JSX.Element {
       email: string;
       firstName?: string;
       lastName?: string;
+      phone?: string;
       roleId: string;
+      organizationId?: string;
       hasAllSiteAccess: boolean;
       siteIds?: string[];
     }) => {
@@ -138,6 +152,7 @@ export function UserCreate(): React.JSX.Element {
       ...(firstName.trim() !== '' ? { firstName } : {}),
       ...(lastName.trim() !== '' ? { lastName } : {}),
       ...(phone.trim() !== '' ? { phone } : {}),
+      ...(organizationId !== '' ? { organizationId } : {}),
       ...(hasAllSiteAccess ? {} : { siteIds: selectedSiteIds }),
     });
   }
@@ -208,6 +223,24 @@ export function UserCreate(): React.JSX.Element {
                 }}
                 placeholder={t('users.phonePlaceholder')}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="user-organization">{t('organizations.title')}</Label>
+              <Select
+                id="user-organization"
+                value={organizationId}
+                onChange={(e) => {
+                  setOrganizationId(e.target.value);
+                }}
+              >
+                <option value="">{t('organizations.noOrganization')}</option>
+                {organizationsList.map((organization) => (
+                  <option key={organization.id} value={organization.id}>
+                    {organization.name}
+                  </option>
+                ))}
+              </Select>
+              <p className="text-xs text-muted-foreground">{t('organizations.userBindingHint')}</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="user-role">{t('users.role')}</Label>

@@ -68,6 +68,27 @@ const SessionDetail = lazy(() =>
   import('@/pages/SessionDetail').then((m) => ({ default: m.SessionDetail })),
 );
 const Fleets = lazy(() => import('@/pages/Fleets').then((m) => ({ default: m.Fleets })));
+const Transactions = lazy(() =>
+  import('@/pages/Transactions').then((m) => ({ default: m.Transactions })),
+);
+const Organizations = lazy(() =>
+  import('@/pages/Organizations').then((m) => ({ default: m.Organizations })),
+);
+const OrganizationCreate = lazy(() =>
+  import('@/pages/OrganizationCreate').then((m) => ({ default: m.OrganizationCreate })),
+);
+const OrganizationDetail = lazy(() =>
+  import('@/pages/OrganizationDetail').then((m) => ({ default: m.OrganizationDetail })),
+);
+const AnnualPlans = lazy(() =>
+  import('@/pages/AnnualPlans').then((m) => ({ default: m.AnnualPlans })),
+);
+const AnnualPlanCreate = lazy(() =>
+  import('@/pages/AnnualPlanCreate').then((m) => ({ default: m.AnnualPlanCreate })),
+);
+const AnnualPlanDetail = lazy(() =>
+  import('@/pages/AnnualPlanDetail').then((m) => ({ default: m.AnnualPlanDetail })),
+);
 const FleetCreate = lazy(() =>
   import('@/pages/FleetCreate').then((m) => ({ default: m.FleetCreate })),
 );
@@ -282,6 +303,62 @@ export function App(): React.JSX.Element {
                   <Route path="stations/:id/pricing/add" element={<StationAssignPricing />} />
                   <Route path="sessions" element={<Sessions />} />
                   <Route path="sessions/:id" element={<SessionDetail />} />
+                  <Route
+                    path="transactions"
+                    element={
+                      <AdminRoute requiredPermission="transactions:read">
+                        <Transactions />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="organizations"
+                    element={
+                      <AdminRoute requiredPermission="organizations:read">
+                        <Organizations />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="organizations/new"
+                    element={
+                      <AdminRoute requiredPermission="organizations:write">
+                        <OrganizationCreate />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="organizations/:id"
+                    element={
+                      <AdminRoute requiredPermission="organizations:read">
+                        <OrganizationDetail />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="annual-plans"
+                    element={
+                      <AdminRoute requiredPermission="annualPlans:read">
+                        <AnnualPlans />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="annual-plans/new"
+                    element={
+                      <AdminRoute requiredPermission="annualPlans:write">
+                        <AnnualPlanCreate />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="annual-plans/:id"
+                    element={
+                      <AdminRoute requiredPermission="annualPlans:read">
+                        <AnnualPlanDetail />
+                      </AdminRoute>
+                    }
+                  />
                   <Route path="reservations" element={<Reservations />} />
                   <Route path="reservations/new" element={<ReservationCreate />} />
                   <Route path="reservations/:id" element={<ReservationDetail />} />

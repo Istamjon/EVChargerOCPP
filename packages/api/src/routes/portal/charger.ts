@@ -1387,6 +1387,8 @@ export function portalChargerRoutes(app: FastifyInstance): void {
           stationId: station.id,
           evseId: evse.id,
           driverId,
+          // Bind the transaction to the driver's organization.
+          organizationId: sql`(SELECT organization_id FROM drivers WHERE id = ${driverId})`,
           transactionId,
           status: 'active',
           startedAt: new Date(),

@@ -2,13 +2,15 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { EditButton } from '@/components/edit-button';
 import { CancelButton } from '@/components/cancel-button';
 import { SaveButton } from '@/components/save-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TabsContent } from '@/components/ui/tabs';
@@ -21,9 +23,15 @@ interface Driver {
   lastName: string;
   email: string | null;
   phone: string | null;
+  organizationId: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+interface OrganizationOption {
+  id: string;
+  name: string;
 }
 
 export interface DriverDetailsTabProps {
@@ -40,8 +48,16 @@ export function DriverDetailsTab({ driver, timezone }: DriverDetailsTabProps): R
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [organizationId, setOrganizationId] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [hasSubmittedEdit, setHasSubmittedEdit] = useState(false);
+
+  const { data: organizationsData } = useQuery({
+    queryKey: ['organizations-for-select'],
+    queryFn: () => api.get<{ data: OrganizationOption[] }>('/v1/organizations?limit=100'),
+    enabled: editing,
+  });
+  const organizationsList = organizationsData?.data ?? [];
 
   const updateMutation = useMutation({
     mutationFn: (body: {
@@ -49,6 +65,7 @@ export function DriverDetailsTab({ driver, timezone }: DriverDetailsTabProps): R
       lastName?: string;
       email?: string;
       phone?: string;
+      organizationId?: string | null;
       isActive?: boolean;
     }) => api.patch<Driver>(`/v1/drivers/${driver.id}`, body),
     onSuccess: () => {
@@ -64,6 +81,7 @@ export function DriverDetailsTab({ driver, timezone }: DriverDetailsTabProps): R
     setLastName(driver.lastName);
     setEmail(driver.email ?? '');
     setPhone(driver.phone ?? '');
+    setOrganizationId(driver.organizationId ?? '');
     setIsActive(driver.isActive);
     setEditing(true);
   }
@@ -90,6 +108,7 @@ export function DriverDetailsTab({ driver, timezone }: DriverDetailsTabProps): R
       lastName,
       ...(email !== '' ? { email } : {}),
       ...(phone !== '' ? { phone } : {}),
+      organizationId: organizationId === '' ? null : organizationId,
       isActive,
     });
   }
@@ -155,6 +174,26 @@ export function DriverDetailsTab({ driver, timezone }: DriverDetailsTabProps): R
                   }}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-driver-organization">{t('organizations.title')}</Label>
+                <Select
+                  id="edit-driver-organization"
+                  value={organizationId}
+                  onChange={(e) => {
+                    setOrganizationId(e.target.value);
+                  }}
+                >
+                  <option value="">{t('organizations.noOrganization')}</option>
+                  {organizationsList.map((organization) => (
+                    <option key={organization.id} value={organization.id}>
+                      {organization.name}
+                    </option>
+                  ))}
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {t('organizations.driverBindingHint')}
+                </p>
+              </div>
               <div className="flex items-center gap-2">
                 <input
                   id="edit-active"
@@ -194,6 +233,21 @@ export function DriverDetailsTab({ driver, timezone }: DriverDetailsTabProps): R
               <div>
                 <dt className="text-muted-foreground">{t('drivers.phone')}</dt>
                 <dd className="font-medium">{driver.phone ?? '-'}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">{t('organizations.title')}</dt>
+                <dd className="font-medium">
+                  {driver.organizationId != null ? (
+                    <Link
+                      to={`/organizations/${driver.organizationId}`}
+                      className="text-primary hover:underline"
+                    >
+                      {driver.organizationId}
+                    </Link>
+                  ) : (
+                    t('organizations.noOrganization')
+                  )}
+                </dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">{t('common.status')}</dt>

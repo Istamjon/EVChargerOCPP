@@ -46,6 +46,9 @@ export const ID_PREFIXES = {
   cpPush: 'cpp',
   panel: 'pnl',
   circuit: 'cir',
+  organization: 'org',
+  annualPlan: 'apl',
+  organizationAnnualPlan: 'oap',
 } as const;
 
 export type EntityType = keyof typeof ID_PREFIXES;

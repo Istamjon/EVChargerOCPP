@@ -1304,8 +1304,13 @@ export function registerProjections(
               `;
               driverUuid = (tokenRows[0]?.driver_id as string | null) ?? null;
               if (driverUuid != null) {
+                // Bind the transaction to the driver's organization so
+                // transactions are stored per organization.
                 await sql`
-                  UPDATE charging_sessions SET driver_id = ${driverUuid}, updated_at = now()
+                  UPDATE charging_sessions
+                  SET driver_id = ${driverUuid},
+                      organization_id = (SELECT organization_id FROM drivers WHERE id = ${driverUuid}),
+                      updated_at = now()
                   WHERE id = ${sessionId}
                 `;
               } else {

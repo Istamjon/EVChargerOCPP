@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Send } from 'lucide-react';
@@ -33,6 +33,7 @@ interface User {
   firstName: string | null;
   lastName: string | null;
   roleId: string;
+  organizationId: string | null;
   hasAllSiteAccess: boolean;
   siteCount: number | null;
   isActive: boolean;
@@ -42,6 +43,11 @@ interface User {
 }
 
 interface Role {
+  id: string;
+  name: string;
+}
+
+interface OrganizationOption {
   id: string;
   name: string;
 }
@@ -71,6 +77,14 @@ export function UsersPage(): React.JSX.Element {
     queryKey: ['roles'],
     queryFn: () => api.get<Role[]>('/v1/roles'),
   });
+
+  const { data: organizationsData } = useQuery({
+    queryKey: ['organizations-for-select'],
+    queryFn: () => api.get<{ data: OrganizationOption[] }>('/v1/organizations?limit=100'),
+  });
+  const organizationNames = new Map(
+    (organizationsData?.data ?? []).map((organization) => [organization.id, organization.name]),
+  );
 
   const resendInviteMutation = useMutation({
     mutationFn: (id: string) => api.post(`/v1/users/${id}/resend-invite`, {}),
@@ -140,6 +154,7 @@ export function UsersPage(): React.JSX.Element {
               <TableHead>{t('common.email')}</TableHead>
               <TableHead>{t('users.userId')}</TableHead>
               <TableHead>{t('users.role')}</TableHead>
+              <TableHead>{t('organizations.title')}</TableHead>
               <TableHead>{t('users.siteAccessColumn')}</TableHead>
               <TableHead>{t('common.status')}</TableHead>
               <TableHead>{t('users.lastLogin')}</TableHead>
@@ -150,14 +165,14 @@ export function UsersPage(): React.JSX.Element {
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">
+                <TableCell colSpan={10} className="text-center text-muted-foreground">
                   {t('common.loading')}
                 </TableCell>
               </TableRow>
             )}
             {isError && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-destructive">
+                <TableCell colSpan={10} className="text-center text-destructive">
                   {t('common.loadError')}
                 </TableCell>
               </TableRow>
@@ -183,6 +198,20 @@ export function UsersPage(): React.JSX.Element {
                 </TableCell>
                 <TableCell>
                   <Badge variant="secondary">{getRoleName(user.roleId)}</Badge>
+                </TableCell>
+                <TableCell>
+                  {user.organizationId != null ? (
+                    <Link
+                      to={`/organizations/${user.organizationId}`}
+                      className="text-primary hover:underline"
+                    >
+                      {organizationNames.get(user.organizationId) ?? user.organizationId}
+                    </Link>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      {t('organizations.noOrganization')}
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell className="text-sm">
                   {user.hasAllSiteAccess
@@ -228,7 +257,7 @@ export function UsersPage(): React.JSX.Element {
             ))}
             {users?.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">
+                <TableCell colSpan={10} className="text-center text-muted-foreground">
                   {t('users.noUsersFound')}
                 </TableCell>
               </TableRow>

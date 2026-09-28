@@ -27,6 +27,7 @@ interface Driver {
   lastName: string;
   email: string | null;
   phone: string | null;
+  organizationId: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

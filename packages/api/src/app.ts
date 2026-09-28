@@ -36,6 +36,8 @@ import { ocppCommandRoutes } from './routes/ocpp-commands.js';
 import { ocppSchemaRoutes } from './routes/ocpp-schemas.js';
 import { transactionRoutes } from './routes/transactions.js';
 import { fleetRoutes } from './routes/fleets.js';
+import { organizationRoutes } from './routes/organizations.js';
+import { annualPlanRoutes } from './routes/annual-plans.js';
 import { tokenRoutes } from './routes/tokens.js';
 import { dashboardRoutes } from './routes/dashboard.js';
 import { settingsRoutes } from './routes/settings.js';
@@ -152,6 +154,8 @@ export async function buildApp(opts: FastifyServerOptions = {}): Promise<Fastify
       await v1.register(ocppSchemaRoutes);
       await v1.register(transactionRoutes);
       await v1.register(fleetRoutes);
+      await v1.register(organizationRoutes);
+      await v1.register(annualPlanRoutes);
       await v1.register(tokenRoutes);
       await v1.register(dashboardRoutes);
       await v1.register(settingsRoutes);

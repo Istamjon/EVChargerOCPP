@@ -362,20 +362,31 @@ function padNum(n: number, digits: number): string {
 
 const seedDemo = process.env['SEED_DEMO'] === 'true';
 
+/**
+ * Destructive reset is opt-in. Wiping every table on each boot would destroy
+ * the customer's own data (organizations, annual plans, transactions, users),
+ * so it only runs when demo data is requested or SEED_RESET is explicitly set.
+ */
+const seedReset = process.env['SEED_RESET'] === 'true' || seedDemo;
+
 async function seed(): Promise<void> {
   console.log(`Seeding database...${seedDemo ? '' : ' (demo data disabled)'}`);
 
-  // Clear existing data (truncate all tables with cascade)
-  console.log('  Clearing existing data...');
-  const tables = await db.execute<{ tablename: string }>(sql`
-    SELECT tablename FROM pg_tables
-    WHERE schemaname = 'public' AND tablename != 'drizzle_migrations'
-  `);
-  if (tables.length > 0) {
-    const tableNames = tables.map((t) => t.tablename).join(', ');
-    await db.execute(sql.raw(`TRUNCATE TABLE ${tableNames} CASCADE`));
+  if (seedReset) {
+    // Clear existing data (truncate all tables with cascade)
+    console.log('  Clearing existing data...');
+    const tables = await db.execute<{ tablename: string }>(sql`
+      SELECT tablename FROM pg_tables
+      WHERE schemaname = 'public' AND tablename != 'drizzle_migrations'
+    `);
+    if (tables.length > 0) {
+      const tableNames = tables.map((t) => t.tablename).join(', ');
+      await db.execute(sql.raw(`TRUNCATE TABLE ${tableNames} CASCADE`));
+    }
+    console.log('  Tables cleared.');
+  } else {
+    console.log('  Keeping existing data (set SEED_RESET=true to wipe and re-seed).');
   }
-  console.log('  Tables cleared.');
 
   // ------ Settings ------
   // EVtivity logo - green circle with white lightning bolt

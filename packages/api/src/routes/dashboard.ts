@@ -14,12 +14,31 @@ import {
   settings,
   paymentRecords,
   ocppServerHealth,
+  organizations,
+  organizationAnnualPlans,
+  users,
+  drivers,
 } from '@evtivity/database';
 import { itemResponse, arrayResponse } from '../lib/response-schemas.js';
 import { zodSchema } from '../lib/zod-schema.js';
 import { getUserSiteIds } from '../lib/site-access.js';
 import type { JwtPayload } from '../plugins/auth.js';
 import { authorize } from '../middleware/rbac.js';
+
+const organizationStatsResponse = z
+  .object({
+    organizations: z.number(),
+    activeOrganizations: z.number(),
+    organizationsWithPlan: z.number(),
+    users: z.number(),
+    activeUsers: z.number(),
+    drivers: z.number(),
+    transactions: z.number(),
+    energyKwh: z.number(),
+    transactionsByDay: z.array(z.object({ date: z.string(), count: z.number() }).passthrough()),
+    userActivityByDay: z.array(z.object({ date: z.string(), count: z.number() }).passthrough()),
+  })
+  .passthrough();
 
 const dashboardStatsResponse = z
   .object({
@@ -393,6 +412,118 @@ export function dashboardRoutes(app: FastifyInstance): void {
         .orderBy(sql`1`);
 
       return rows.map((r) => ({ date: r.date, count: r.count }));
+    },
+  );
+
+  app.get(
+    '/dashboard/organization-stats',
+    {
+      onRequest: [authorize('dashboard:read')],
+      schema: {
+        tags: ['Dashboard'],
+        summary: 'Get organization, user activity and transaction statistics over time',
+        operationId: 'getDashboardOrganizationStats',
+        security: [{ bearerAuth: [] }],
+        response: { 200: itemResponse(organizationStatsResponse) },
+      },
+      config: DASHBOARD_RATE_LIMIT,
+    },
+    async (request) => {
+      const { userId } = request.user as JwtPayload;
+      const siteIds = await getUserSiteIds(userId);
+
+      const { since, until } = parseDateRange(
+        request.query as { days?: string; from?: string; to?: string },
+      );
+
+      const [tzRow] = await db
+        .select({ value: settings.value })
+        .from(settings)
+        .where(eq(settings.key, 'system.timezone'));
+      const tz = typeof tzRow?.value === 'string' ? tzRow.value : 'America/New_York';
+
+      const sessionConditions = [gte(chargingSessions.startedAt, since)];
+      if (until) sessionConditions.push(lte(chargingSessions.startedAt, until));
+      if (siteIds != null) {
+        sessionConditions.push(inArray(chargingStations.siteId, siteIds));
+      }
+
+      const totalsQuery = db
+        .select({
+          transactions: count(),
+          energyWh: sql<number>`coalesce(sum(${chargingSessions.energyDeliveredWh}::numeric), 0)`,
+        })
+        .from(chargingSessions);
+      if (siteIds != null) {
+        totalsQuery.innerJoin(chargingStations, eq(chargingSessions.stationId, chargingStations.id));
+      }
+
+      const byDayQuery = db
+        .select({
+          date: sql<string>`date_trunc('day', ${chargingSessions.startedAt} AT TIME ZONE ${tz})::date::text`,
+          count: count(),
+        })
+        .from(chargingSessions);
+      if (siteIds != null) {
+        byDayQuery.innerJoin(chargingStations, eq(chargingSessions.stationId, chargingStations.id));
+      }
+
+      const [
+        organizationRows,
+        planRows,
+        userRows,
+        driverRows,
+        totalsRows,
+        transactionsByDay,
+        userActivityByDay,
+      ] = await Promise.all([
+        db
+          .select({
+            total: count(),
+            active: sql<number>`count(*) filter (where ${organizations.isActive})`,
+          })
+          .from(organizations),
+        db
+          .select({ total: count() })
+          .from(organizationAnnualPlans)
+          .where(eq(organizationAnnualPlans.status, 'active')),
+        db
+          .select({
+            total: count(),
+            active: sql<number>`count(*) filter (where ${gte(users.lastLoginAt, since)})`,
+          })
+          .from(users),
+        db.select({ total: count() }).from(drivers),
+        totalsQuery.where(and(...sessionConditions)),
+        byDayQuery
+          .where(and(...sessionConditions))
+          .groupBy(sql`1`)
+          .orderBy(sql`1`),
+        db
+          .select({
+            date: sql<string>`date_trunc('day', ${users.lastLoginAt} AT TIME ZONE ${tz})::date::text`,
+            count: count(),
+          })
+          .from(users)
+          .where(gte(users.lastLoginAt, since))
+          .groupBy(sql`1`)
+          .orderBy(sql`1`),
+      ]);
+
+      const totals = totalsRows[0];
+
+      return {
+        organizations: organizationRows[0]?.total ?? 0,
+        activeOrganizations: organizationRows[0]?.active ?? 0,
+        organizationsWithPlan: planRows[0]?.total ?? 0,
+        users: userRows[0]?.total ?? 0,
+        activeUsers: userRows[0]?.active ?? 0,
+        drivers: driverRows[0]?.total ?? 0,
+        transactions: totals?.transactions ?? 0,
+        energyKwh: Math.round((Number(totals?.energyWh ?? 0) / 1000) * 100) / 100,
+        transactionsByDay: transactionsByDay.map((r) => ({ date: r.date, count: r.count })),
+        userActivityByDay: userActivityByDay.map((r) => ({ date: r.date, count: r.count })),
+      };
     },
   );
 

@@ -18,6 +18,7 @@ import { sql } from 'drizzle-orm';
 import { createId } from '../lib/id.js';
 import { drivers } from './drivers.js';
 import { sites } from './assets.js';
+import { organizations } from './organizations.js';
 
 export const roles = pgTable('roles', {
   id: text('id')
@@ -44,6 +45,10 @@ export const users = pgTable(
     roleId: text('role_id')
       .notNull()
       .references(() => roles.id),
+    /** Organization this user belongs to. NULL = platform-level user. */
+    organizationId: text('organization_id').references(() => organizations.id, {
+      onDelete: 'set null',
+    }),
     isActive: boolean('is_active').notNull().default(true),
     mustResetPassword: boolean('must_reset_password').notNull().default(false),
     language: varchar('language', { length: 10 }).notNull().default('en'),
@@ -60,6 +65,7 @@ export const users = pgTable(
   (table) => [
     index('idx_users_email').on(table.email),
     index('idx_users_role_id').on(table.roleId),
+    index('idx_users_organization_id').on(table.organizationId),
   ],
 );
 

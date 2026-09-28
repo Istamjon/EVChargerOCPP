@@ -27,6 +27,9 @@ import {
   X,
   ChevronsLeft,
   ChevronsRight,
+  Receipt,
+  Landmark,
+  CalendarRange,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -77,6 +80,12 @@ const navItems = [
     requiredPermission: 'sessions:read',
   },
   {
+    to: '/transactions',
+    labelKey: 'nav.transactions' as const,
+    icon: Receipt,
+    requiredPermission: 'transactions:read',
+  },
+  {
     to: '/reservations',
     labelKey: 'nav.reservations' as const,
     icon: CalendarClock,
@@ -124,6 +133,18 @@ const navItems = [
   },
   // Administration
   { to: '/users', labelKey: 'nav.users' as const, icon: Users, requiredPermission: 'users:read' },
+  {
+    to: '/organizations',
+    labelKey: 'nav.organizations' as const,
+    icon: Landmark,
+    requiredPermission: 'organizations:read',
+  },
+  {
+    to: '/annual-plans',
+    labelKey: 'nav.annualPlans' as const,
+    icon: CalendarRange,
+    requiredPermission: 'annualPlans:read',
+  },
   {
     to: '/support-cases',
     labelKey: 'nav.supportCases' as const,

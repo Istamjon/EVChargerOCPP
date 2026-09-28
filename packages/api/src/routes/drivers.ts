@@ -21,6 +21,21 @@ import { paginationQuery } from '../lib/pagination.js';
 import type { PaginatedResponse } from '../lib/pagination.js';
 import { authorize } from '../middleware/rbac.js';
 import {
+  personNameSchema,
+  optionalPersonNameSchema,
+  nullablePersonNameSchema,
+  phoneSchema,
+  optionalPhoneSchema,
+  nullablePhoneSchema,
+  vinSchema,
+  optionalVinSchema,
+  plateSchema,
+  optionalPlateSchema,
+  normalizeVin,
+  normalizePlate,
+  normalizePhone,
+} from '@evtivity/lib';
+import {
   errorResponse,
   paginatedResponse,
   itemResponse,
@@ -34,6 +49,7 @@ const driverItem = z
     lastName: z.string().nullable(),
     email: z.string().nullable(),
     phone: z.string().nullable(),
+    organizationId: z.string().nullable(),
     isActive: z.boolean(),
     createdAt: z.coerce.date(),
     updatedAt: z.coerce.date(),
@@ -80,17 +96,24 @@ const driverParams = z.object({
 });
 
 const createDriverBody = z.object({
-  firstName: z.string().max(100),
-  lastName: z.string().max(100),
+  firstName: personNameSchema.describe('Driver first name'),
+  lastName: personNameSchema.describe('Driver last name'),
   email: z.string().email().optional(),
-  phone: z.string().max(50).optional(),
+  phone: optionalPhoneSchema.describe('Mobile phone number'),
+  organizationId: ID_PARAMS.organizationId
+    .optional()
+    .describe('Organization the driver and their transactions belong to'),
 });
 
 const updateDriverBody = z.object({
-  firstName: z.string().max(100).optional(),
-  lastName: z.string().max(100).optional(),
+  firstName: optionalPersonNameSchema.describe('Driver first name'),
+  lastName: optionalPersonNameSchema.describe('Driver last name'),
   email: z.string().email().optional(),
-  phone: z.string().max(50).optional(),
+  phone: nullablePhoneSchema.describe('Mobile phone number'),
+  organizationId: ID_PARAMS.organizationId
+    .nullable()
+    .optional()
+    .describe('Organization the driver and their transactions belong to'),
   isActive: z.boolean().optional().describe('Whether the driver account is active'),
   timezone: z.string().max(50).optional().describe('IANA timezone (e.g. America/New_York)'),
 });
@@ -140,16 +163,16 @@ const createVehicleBody = z.object({
   make: z.string().max(100).describe('Vehicle make (e.g. Tesla, BMW)'),
   model: z.string().max(100).describe('Vehicle model (e.g. Model 3, i4)'),
   year: z.string().max(4).optional().describe('Model year (e.g. 2024)'),
-  vin: z.string().max(17).optional().describe('Vehicle Identification Number'),
-  licensePlate: z.string().max(20).optional().describe('License plate number'),
+  vin: optionalVinSchema.describe('Vehicle Identification Number (17 characters, ISO 3779)'),
+  licensePlate: optionalPlateSchema.describe('License plate number (max 20 characters)'),
 });
 
 const updateVehicleBody = z.object({
   make: z.string().max(100).optional(),
   model: z.string().max(100).optional(),
   year: z.string().max(4).optional(),
-  vin: z.string().max(17).optional(),
-  licensePlate: z.string().max(20).optional(),
+  vin: optionalVinSchema.describe('Vehicle Identification Number (17 characters, ISO 3779)'),
+  licensePlate: optionalPlateSchema.describe('License plate number (max 20 characters)'),
 });
 
 const vehicleParams = z.object({
@@ -269,7 +292,14 @@ export function driverRoutes(app: FastifyInstance): void {
         }
       }
 
-      const [driver] = await db.insert(drivers).values(body).returning();
+      const [driver] = await db
+        .insert(drivers)
+        .values({
+          ...body,
+          phone: body.phone != null ? normalizePhone(body.phone) : null,
+          organizationId: body.organizationId ?? null,
+        })
+        .returning();
       await reply.status(201).send(driver);
     },
   );
@@ -296,8 +326,11 @@ export function driverRoutes(app: FastifyInstance): void {
       if (body.firstName !== undefined) fields['firstName'] = body.firstName;
       if (body.lastName !== undefined) fields['lastName'] = body.lastName;
       if (body.email !== undefined) fields['email'] = body.email;
-      if (body.phone !== undefined) fields['phone'] = body.phone;
+      if (body.phone !== undefined) {
+        fields['phone'] = body.phone != null ? normalizePhone(body.phone) : null;
+      }
       if (body.isActive !== undefined) fields['isActive'] = body.isActive;
+      if (body.organizationId !== undefined) fields['organizationId'] = body.organizationId;
       if (body.timezone !== undefined) fields['timezone'] = body.timezone;
 
       const [updated] = await db.update(drivers).set(fields).where(eq(drivers.id, id)).returning();
@@ -422,7 +455,12 @@ export function driverRoutes(app: FastifyInstance): void {
       const body = request.body as z.infer<typeof createVehicleBody>;
       const [vehicle] = await db
         .insert(vehicles)
-        .values({ driverId: id, ...body })
+        .values({
+          driverId: id,
+          ...body,
+          vin: body.vin != null ? normalizeVin(body.vin) : null,
+          licensePlate: body.licensePlate != null ? normalizePlate(body.licensePlate) : null,
+        })
         .returning();
       await reply.status(201).send(vehicle);
     },
@@ -450,8 +488,8 @@ export function driverRoutes(app: FastifyInstance): void {
       if (body.make !== undefined) fields['make'] = body.make;
       if (body.model !== undefined) fields['model'] = body.model;
       if (body.year !== undefined) fields['year'] = body.year;
-      if (body.vin !== undefined) fields['vin'] = body.vin;
-      if (body.licensePlate !== undefined) fields['licensePlate'] = body.licensePlate;
+      if (body.vin !== undefined) fields['vin'] = normalizeVin(body.vin);
+      if (body.licensePlate !== undefined) fields['licensePlate'] = normalizePlate(body.licensePlate);
 
       const [updated] = await db
         .update(vehicles)

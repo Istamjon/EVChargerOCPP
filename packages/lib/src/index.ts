@@ -93,6 +93,31 @@ export type {
 
 export { isPrivateUrl } from './url-validation.js';
 
+export {
+  PERSON_NAME_REGEX,
+  PHONE_REGEX,
+  VIN_REGEX,
+  PLATE_REGEX,
+  PERSON_NAME_MAX_LENGTH,
+  PHONE_MAX_LENGTH,
+  VIN_LENGTH,
+  PLATE_MAX_LENGTH,
+  personNameSchema,
+  optionalPersonNameSchema,
+  nullablePersonNameSchema,
+  phoneSchema,
+  optionalPhoneSchema,
+  nullablePhoneSchema,
+  vinSchema,
+  optionalVinSchema,
+  plateSchema,
+  optionalPlateSchema,
+  searchFilterSchema,
+  normalizeVin,
+  normalizePlate,
+  normalizePhone,
+} from './field-validation.js';
+
 export { initSentry } from './sentry.js';
 export type { SentryConfig } from './sentry.js';
 

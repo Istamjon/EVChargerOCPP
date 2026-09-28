@@ -30,6 +30,7 @@ interface User {
   lastName: string | null;
   phone: string | null;
   roleId: string;
+  organizationId: string | null;
   isActive: boolean;
   hasAllSiteAccess: boolean;
   siteIds: string[];
@@ -48,6 +49,11 @@ interface Role {
   name: string;
 }
 
+interface OrganizationOption {
+  id: string;
+  name: string;
+}
+
 export function UserDetail(): React.JSX.Element {
   const timezone = useUserTimezone();
   const { t } = useTranslation();
@@ -61,6 +67,7 @@ export function UserDetail(): React.JSX.Element {
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [roleId, setRoleId] = useState('');
+  const [organizationId, setOrganizationId] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [hasAllSiteAccess, setHasAllSiteAccess] = useState(false);
   const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>([]);
@@ -105,12 +112,20 @@ export function UserDetail(): React.JSX.Element {
   });
   const sitesList = sitesData?.data ?? [];
 
+  const { data: organizationsData } = useQuery({
+    queryKey: ['organizations-for-select'],
+    queryFn: () => api.get<{ data: OrganizationOption[] }>('/v1/organizations?limit=100'),
+    enabled: editing,
+  });
+  const organizationsList = organizationsData?.data ?? [];
+
   const updateMutation = useMutation({
     mutationFn: (body: {
       firstName?: string;
       lastName?: string;
       phone?: string | null;
       roleId?: string;
+      organizationId?: string | null;
       isActive?: boolean;
       hasAllSiteAccess?: boolean;
       siteIds?: string[];
@@ -147,6 +162,7 @@ export function UserDetail(): React.JSX.Element {
     setLastName(user.lastName ?? '');
     setPhone(user.phone ?? '');
     setRoleId(user.roleId);
+    setOrganizationId(user.organizationId ?? '');
     setIsActive(user.isActive);
     setHasAllSiteAccess(user.hasAllSiteAccess);
     setSelectedSiteIds(user.siteIds);
@@ -188,6 +204,7 @@ export function UserDetail(): React.JSX.Element {
       lastName,
       phone: phone.trim() || null,
       roleId,
+      organizationId: organizationId === '' ? null : organizationId,
       isActive,
       hasAllSiteAccess,
       siteIds: hasAllSiteAccess ? [] : selectedSiteIds,
@@ -282,6 +299,26 @@ export function UserDetail(): React.JSX.Element {
                   }}
                   placeholder={t('users.phonePlaceholder')}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-organization">{t('organizations.title')}</Label>
+                <Select
+                  id="edit-organization"
+                  value={organizationId}
+                  onChange={(e) => {
+                    setOrganizationId(e.target.value);
+                  }}
+                >
+                  <option value="">{t('organizations.noOrganization')}</option>
+                  {organizationsList.map((organization) => (
+                    <option key={organization.id} value={organization.id}>
+                      {organization.name}
+                    </option>
+                  ))}
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {t('organizations.userBindingHint')}
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-role">{t('users.role')}</Label>
